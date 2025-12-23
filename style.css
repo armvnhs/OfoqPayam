@@ -1,0 +1,150 @@
+/* تنظیمات کلی صفحه */
+body {
+    background-color: #000;
+    color: #0f0;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* افکت خطوط مانیتور قدیمی (Scanlines) */
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* صفحه ورود */
+#login-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    z-index: 10;
+}
+
+.ascii-art {
+    color: #0f0;
+    font-weight: bold;
+    text-shadow: 0 0 10px #0f0;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.status-text {
+    animation: blink 2s infinite;
+}
+
+/* رابط اصلی چت */
+#main-interface {
+    display: none; /* در ابتدا مخفی است */
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    z-index: 5;
+}
+
+.header-bar {
+    border-bottom: 1px solid #0f0;
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    background: #001100;
+    padding: 5px 10px;
+}
+
+#chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px;
+    border: 1px solid #004400;
+    padding: 10px;
+    margin-bottom: 10px;
+    /* مخفی کردن اسکرول بار اما قابلیت اسکرول داشتن */
+    scrollbar-width: none; 
+}
+#chat-history::-webkit-scrollbar { display: none; }
+
+/* استایل پیام‌ها */
+.msg-line {
+    margin-bottom: 6px;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.timestamp {
+    color: #008800;
+    margin-right: 8px;
+    font-size: 0.8em;
+}
+
+.user-label {
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 0 5px #fff;
+}
+
+.system-msg {
+    color: #ffff00;
+}
+
+/* بخش ورودی پیام */
+.input-line {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #004400;
+    padding-top: 10px;
+    background: #000;
+}
+
+.prompt {
+    margin-right: 10px;
+    color: #0f0;
+}
+
+input {
+    background: transparent;
+    border: none;
+    color: #0f0;
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    flex: 1;
+    outline: none;
+}
+
+button {
+    background: #000;
+    color: #0f0;
+    border: 1px solid #0f0;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px 15px;
+    margin-left: 10px;
+}
+
+button:hover {
+    background: #0f0;
+    color: #000;
+    box-shadow: 0 0 10px #0f0;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
