@@ -1,8 +1,8 @@
 // ==========================================
 // ⚠️ تنظیمات SUPABASE - این بخش را پر کنید ⚠️
 // ==========================================
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co'; 
-const SUPABASE_KEY = 'YOUR_ANON_PUBLIC_KEY'; 
+const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co'; 
+const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-'; 
 // ==========================================
 
 // راه اندازی کلاینت Supabase
