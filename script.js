@@ -1,173 +1,177 @@
-// ==========================================
-// تنظیمات اتصال (اطلاعات خود را اینجا بگذارید)
-// ==========================================
+// تنظیمات اتصال Supabase
 const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-';
-// ==========================================
+const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-'; 
 
-// چک کردن وجود کتابخانه Supabase
-if (typeof supabase === 'undefined') {
-    alert("کتابخانه Supabase لود نشد! لطفا اینترنت خود را چک کنید یا از VPN استفاده کنید.");
-}
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// متغیرهای وضعیت
+let currentUser = null;
 
-// عناصر
+// المنت‌های HTML
 const loginScreen = document.getElementById('login-screen');
 const chatScreen = document.getElementById('chat-screen');
-const userIn = document.getElementById('username');
-const passIn = document.getElementById('password');
-const loginBtn = document.getElementById('login-btn');
-const errorMsg = document.getElementById('login-error');
-const msgList = document.getElementById('message-list');
+const loginForm = document.getElementById('login-form');
+const loginError = document.getElementById('login-error');
+const msgContainer = document.getElementById('messages-container');
+const msgForm = document.getElementById('message-form');
 const msgInput = document.getElementById('message-input');
-const sendBtn = document.getElementById('send-btn');
-const currentUserSpan = document.getElementById('current-user');
+const logoutBtn = document.getElementById('logout-btn');
 
-let myUsername = null;
-
-// --- تابع لاگین ---
-async function handleLogin() {
-    const username = userIn.value.trim().toLowerCase(); // تبدیل به حروف کوچک
-    const password = passIn.value.trim();
-
-    if (!username || !password) {
-        errorMsg.textContent = "لطفا همه فیلدها را پر کنید.";
-        return;
-    }
-
-    loginBtn.textContent = "در حال بررسی...";
-    loginBtn.disabled = true;
-    errorMsg.textContent = "";
+// --- ۱. مدیریت لاگین ---
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = 'در حال بررسی هویت...';
+    
+    const username = document.getElementById('username').value.toLowerCase().trim();
+    const password = document.getElementById('password').value;
 
     try {
-        // دریافت کاربر از دیتابیس
-        const { data, error } = await sb
+        const { data, error } = await supabase
             .from('users')
             .select('*')
             .eq('username', username)
             .eq('password', password)
-            .maybeSingle();
+            .single();
 
-        if (error) throw error;
-
-        if (data) {
-            // لاگین موفق
-            myUsername = data.username;
-            currentUserSpan.textContent = myUsername;
-            loginScreen.classList.add('hidden');
-            chatScreen.classList.remove('hidden');
-            startChat();
-        } else {
-            errorMsg.textContent = "نام کاربری یا رمز عبور اشتباه است.";
-            loginBtn.textContent = "ورود ➜";
-            loginBtn.disabled = false;
+        if (error || !data) {
+            throw new Error('نام کاربری یا رمز عبور اشتباه است.');
         }
 
+        currentUser = data;
+        switchToChat();
     } catch (err) {
         console.error(err);
-        errorMsg.textContent = "خطا در اتصال: " + err.message;
-        loginBtn.textContent = "ورود ➜";
-        loginBtn.disabled = false;
+        if(err.message.includes('fetch')) {
+            loginError.textContent = 'خطا در اتصال: لطفاً VPN را چک کنید.';
+        } else {
+            loginError.textContent = err.message;
+        }
     }
-}
+});
 
-loginBtn.addEventListener('click', handleLogin);
-
-
-// --- شروع چت ---
-function startChat() {
+function switchToChat() {
+    loginScreen.classList.remove('active');
+    chatScreen.classList.add('active');
+    document.getElementById('current-user-display').textContent = currentUser.username;
     loadMessages();
-    
-    // دریافت پیام زنده
-    sb.channel('public:messages')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-          console.log('تغییر جدید:', payload);
-          if (payload.eventType === 'INSERT') {
-              displayMessage(payload.new);
-          } else if (payload.eventType === 'DELETE') {
-              // اگر پیامی حذف شد، لیست را رفرش کن (ساده‌ترین راه)
-              const el = document.getElementById(`msg-${payload.old.id}`);
-              if (el) el.remove();
-          }
-      })
-      .subscribe();
+    setupRealtime();
 }
 
-// --- لود کردن پیام‌های قبلی ---
+// --- ۲. مدیریت پیام‌ها ---
 async function loadMessages() {
-    const { data, error } = await sb
+    msgContainer.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> در حال رمزگشایی پیام‌ها...</div>';
+    
+    const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('*, users(username)')
         .order('created_at', { ascending: true });
 
-    if (!error && data) {
-        msgList.innerHTML = '';
-        data.forEach(displayMessage);
+    msgContainer.innerHTML = ''; // پاک کردن لودینگ
+    
+    if (error) {
+        msgContainer.innerHTML = '<p style="text-align:center; color:red">خطا در دریافت پیام‌ها</p>';
+        return;
     }
+
+    data.forEach(msg => renderMessage(msg));
+    scrollToBottom();
 }
 
-// --- نمایش یک پیام ---
-function displayMessage(msg) {
-    const li = document.createElement('li');
-    li.id = `msg-${msg.id}`;
+function renderMessage(msg) {
+    // تعیین اینکه پیام مال خودمان است یا دیگران
+    const isMe = msg.user_id === currentUser.id;
+    const div = document.createElement('div');
     
-    const isMe = msg.sender === myUsername;
-    li.className = isMe ? 'me' : 'other';
+    // کلاس me برای راست‌چین (آبی)، other برای چپ‌چین (تیره)
+    div.className = `message ${isMe ? 'me' : 'other'}`;
+    div.id = `msg-${msg.id}`;
 
-    let deleteBtn = '';
-    if (isMe) {
-        deleteBtn = `<button class="delete-btn" onclick="deleteMsg(${msg.id})">×</button>`;
-    }
+    // زمان پیام
+    const time = new Date(msg.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    const senderName = isMe ? 'خودم' : (msg.users?.username || 'ناشناس');
 
-    // فرمت ساعت
-    const time = new Date(msg.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit'});
-
-    li.innerHTML = `
+    // ساخت محتوای پیام
+    let htmlContent = `
         <div class="msg-header">
-            <span>${msg.sender}</span>
-            <span>${time}</span>
+            <span class="msg-sender">${senderName}</span>
+            <span class="msg-time">${time}</span>
         </div>
-        ${deleteBtn}
-        <div>${msg.content}</div>
+        <div class="msg-body">${escapeHtml(msg.content)}</div>
     `;
 
-    msgList.appendChild(li);
-    msgList.scrollTop = msgList.scrollHeight;
+    // اگر پیام برای خودم بود، دکمه حذف اضافه کن
+    if (isMe) {
+        htmlContent += `<button onclick="deleteMessage(${msg.id})" class="delete-btn" title="حذف پیام"><i class="fa-solid fa-trash"></i></button>`;
+    }
+
+    div.innerHTML = htmlContent;
+    msgContainer.appendChild(div);
 }
 
-// --- ارسال پیام ---
-sendBtn.addEventListener('click', async () => {
+// --- ۳. ارسال پیام ---
+msgForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const text = msgInput.value.trim();
     if (!text) return;
 
-    // خالی کردن فیلد سریع برای حس بهتر
+    // پاک کردن موقت اینپوت برای حس سرعت
     msgInput.value = '';
 
-    const { error } = await sb
+    const { error } = await supabase
         .from('messages')
-        .insert([{ sender: myUsername, content: text }]);
+        .insert([{ user_id: currentUser.id, content: text }]);
+
+    if (error) alert('خطا در ارسال: ' + error.message);
+});
+
+// --- ۴. حذف پیام ---
+window.deleteMessage = async (id) => {
+    if (!confirm('آیا این پیام حذف شود؟')) return;
+
+    // حذف بصری سریع
+    const el = document.getElementById(`msg-${id}`);
+    if(el) el.style.opacity = '0.5';
+
+    const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', currentUser.id); // امنیت: فقط پیام خود کاربر
 
     if (error) {
-        alert("خطا در ارسال پیام!");
-        msgInput.value = text; // برگرداندن متن در صورت خطا
+        alert('خطا در حذف');
+        if(el) el.style.opacity = '1';
     }
-});
+};
 
-// اینتر برای ارسال
-msgInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendBtn.click();
-});
-
-// --- حذف پیام ---
-window.deleteMsg = async function(id) {
-    if(!confirm('حذف شود؟')) return;
-    
-    await sb.from('messages').delete().eq('id', id);
-    // حذف از صفحه به صورت خودکار توسط ریل‌تایم انجام میشود
+// --- ۵. ریل‌تایم (آپدیت آنی) ---
+function setupRealtime() {
+    supabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+            // دریافت نام کاربری فرستنده جدید
+            const { data } = await supabase.from('users').select('username').eq('id', payload.new.user_id).single();
+            const msg = { ...payload.new, users: data };
+            renderMessage(msg);
+            scrollToBottom();
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
+            const el = document.getElementById(`msg-${payload.old.id}`);
+            if (el) el.remove();
+        })
+        .subscribe();
 }
 
-// --- خروج ---
-document.getElementById('logout-btn').addEventListener('click', () => {
+// ابزارها
+function scrollToBottom() {
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+}
+
+function escapeHtml(text) {
+    if (!text) return text;
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+logoutBtn.addEventListener('click', () => {
     location.reload();
 });
