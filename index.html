@@ -1,79 +1,30 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OFOQ PAYAM | افق پیام</title>
-    <!-- فونت وزیر -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
-    <!-- آیکون‌ها -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+-- حذف جداول قبلی برای جلوگیری از تداخل
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS users;
 
-    <!-- پس‌زمینه شبکه ای متحرک -->
-    <div class="grid-bg"></div>
-    <div class="scanline"></div>
+-- ساخت جدول کاربران
+CREATE TABLE users (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
 
-    <!-- صفحه ورود -->
-    <div id="login-screen" class="screen active">
-        <div class="login-box">
-            <div class="logo-container">
-                <h1 class="neon-text">افق پیام</h1>
-                <span class="subtitle">Secure Terminal v2.0</span>
-            </div>
-            
-            <form id="login-form">
-                <div class="input-group">
-                    <i class="fa-solid fa-user"></i>
-                    <input type="text" id="username" placeholder="نام کاربری" required autocomplete="off">
-                </div>
-                <div class="input-group">
-                    <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="password" placeholder="رمز عبور" required autocomplete="off">
-                </div>
-                <button type="submit" class="cyber-btn">
-                    ورود به سیستم <i class="fa-solid fa-arrow-left"></i>
-                </button>
-            </form>
-            <p id="login-error" class="error-msg"></p>
-        </div>
-    </div>
+-- ساخت جدول پیام‌ها
+CREATE TABLE messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    content TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
 
-    <!-- صفحه چت -->
-    <div id="chat-screen" class="screen">
-        <header class="chat-header">
-            <div class="header-info">
-                <h2 class="mini-logo">OFOQ PAYAM</h2>
-                <div class="status-indicator">
-                    <span class="blink-dot"></span> آنلاین: <span id="current-user-display">---</span>
-                </div>
-            </div>
-            <button id="logout-btn" class="icon-btn" title="خروج">
-                <i class="fa-solid fa-power-off"></i>
-            </button>
-        </header>
+-- غیرفعال کردن سیستم امنیتی سخت‌گیرانه (RLS) برای راحتی کار
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
 
-        <div id="messages-container">
-            <!-- پیام‌ها اینجا لود می‌شوند -->
-            <div class="loading-spinner">
-                <i class="fa-solid fa-circle-notch fa-spin"></i> در حال دریافت دیتا...
-            </div>
-        </div>
+-- ساخت یوزر ادمین پیش‌فرض
+INSERT INTO users (username, password) VALUES ('admin', 'admin');
 
-        <div class="chat-input-area">
-            <form id="message-form">
-                <input type="text" id="message-input" placeholder="پیام خود را تایپ کنید..." autocomplete="off">
-                <button type="submit" class="send-btn">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- اتصال به اسکریپت‌ها -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+-- فعال‌سازی قابلیت ریل‌تایم
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
