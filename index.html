@@ -1,30 +1,93 @@
--- حذف جداول قبلی برای جلوگیری از تداخل
-DROP TABLE IF EXISTS messages;
-DROP TABLE IF EXISTS users;
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>افق پیام | OFOQ PAYAM</title>
+    <!-- فونت وزیر -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="style.css">
+    <!-- لود کردن کتابخانه Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 
--- ساخت جدول کاربران
-CREATE TABLE users (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
-);
+    <!-- صفحه ورود -->
+    <div class="login-container" id="loginPage">
+        <div class="login-box">
+            <h2>خوش‌آمدید به افق پیام</h2>
+            <p class="subtitle">وارد حساب کاربری خود شوید</p>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label>نام کاربری</label>
+                    <input type="text" id="username" placeholder="مثلاً: admin" required>
+                </div>
+                <div class="input-group">
+                    <label>رمز عبور</label>
+                    <input type="password" id="password" placeholder="مثلاً: admin" required>
+                </div>
 
--- ساخت جدول پیام‌ها
-CREATE TABLE messages (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    content TEXT NOT NULL,
-    sender TEXT NOT NULL,
-    is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
-);
+                <!-- انتخاب رنگ تم -->
+                <div class="color-picker-wrapper">
+                    <label>رنگ تم خود را انتخاب کنید:</label>
+                    <input type="color" id="themeColorInput" value="#5865F2">
+                </div>
 
--- غیرفعال کردن سیستم امنیتی سخت‌گیرانه (RLS) برای راحتی کار
-ALTER TABLE users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
+                <button type="submit" id="loginBtn">ورود به سرور</button>
+            </form>
+            <p id="loginStatus"></p>
+        </div>
+    </div>
 
--- ساخت یوزر ادمین پیش‌فرض
-INSERT INTO users (username, password) VALUES ('admin', 'admin');
+    <!-- صفحه چت -->
+    <div class="app-container hidden" id="chatPage">
+        <!-- سایدبار (مثل دیسکورد) -->
+        <div class="sidebar">
+            <div class="server-icon">OF</div>
+            <div class="separator"></div>
+            <div class="sidebar-icon">🏠</div>
+            <div class="sidebar-icon">➕</div>
+        </div>
 
--- فعال‌سازی قابلیت ریل‌تایم
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+        <!-- لیست چنل‌ها (بخش وسط) -->
+        <div class="channels-bar">
+            <div class="header">افق پیام</div>
+            <div class="channel active"># عمومی</div>
+            <div class="channel"># قوانین</div>
+            <div class="channel"># اعلانات</div>
+            
+            <div class="user-profile-bar">
+                <div class="avatar-circle" id="userAvatar"></div>
+                <div class="user-info">
+                    <span id="displayUsername">کاربر</span>
+                    <small>آنلاین</small>
+                </div>
+                <button id="logoutBtn" title="خروج">✖</button>
+            </div>
+        </div>
+
+        <!-- محتوای اصلی چت -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <span class="hashtag">#</span>
+                <span class="channel-name">عمومی</span>
+            </div>
+
+            <div class="messages-container" id="messagesList">
+                <!-- پیام‌ها اینجا لود می‌شوند -->
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <button class="attach-btn">+</button>
+                    <input type="text" id="msgInput" placeholder="پیام خود را در #عمومی بنویسید...">
+                    <button id="sendBtn" class="send-btn">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
