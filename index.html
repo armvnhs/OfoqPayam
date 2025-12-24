@@ -2,47 +2,78 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پیام‌رسان گروهی</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OFOQ PAYAM | افق پیام</title>
     <!-- فونت وزیر -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <!-- آیکون‌ها -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <!-- کتابخانه Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
+    <!-- پس‌زمینه شبکه ای متحرک -->
+    <div class="grid-bg"></div>
+    <div class="scanline"></div>
+
     <!-- صفحه ورود -->
-    <div id="login-screen" class="container">
+    <div id="login-screen" class="screen active">
         <div class="login-box">
-            <h2>ورود به گروه</h2>
-            <p>لطفاً نام کاربری و رمز عبور خود را وارد کنید</p>
-            <input type="text" id="username" placeholder="نام کاربری (مثلاً admin)" autocomplete="off">
-            <input type="password" id="password" placeholder="رمز عبور">
-            <button id="login-btn">ورود ➜</button>
+            <div class="logo-container">
+                <h1 class="neon-text">افق پیام</h1>
+                <span class="subtitle">Secure Terminal v2.0</span>
+            </div>
+            
+            <form id="login-form">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="username" placeholder="نام کاربری" required autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" placeholder="رمز عبور" required autocomplete="off">
+                </div>
+                <button type="submit" class="cyber-btn">
+                    ورود به سیستم <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </form>
             <p id="login-error" class="error-msg"></p>
         </div>
     </div>
 
-    <!-- صفحه چت (مخفی در ابتدا) -->
-    <div id="chat-screen" class="container hidden">
-        <header>
-            <div class="user-info">
-                <span>کاربر: <b id="current-user">...</b></span>
+    <!-- صفحه چت -->
+    <div id="chat-screen" class="screen">
+        <header class="chat-header">
+            <div class="header-info">
+                <h2 class="mini-logo">OFOQ PAYAM</h2>
+                <div class="status-indicator">
+                    <span class="blink-dot"></span> آنلاین: <span id="current-user-display">---</span>
+                </div>
             </div>
-            <button id="logout-btn">خروج</button>
+            <button id="logout-btn" class="icon-btn" title="خروج">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
         </header>
-        
-        <ul id="message-list">
-            <!-- پیام‌ها اینجا می‌آیند -->
-        </ul>
 
-        <div class="input-area">
-            <input type="text" id="message-input" placeholder="پیام خود را بنویسید...">
-            <button id="send-btn">ارسال</button>
+        <div id="messages-container">
+            <!-- پیام‌ها اینجا لود می‌شوند -->
+            <div class="loading-spinner">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> در حال دریافت دیتا...
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <form id="message-form">
+                <input type="text" id="message-input" placeholder="پیام خود را تایپ کنید..." autocomplete="off">
+                <button type="submit" class="send-btn">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
     </div>
 
+    <!-- اتصال به اسکریپت‌ها -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 </html>
