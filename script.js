@@ -1,168 +1,173 @@
 // ==========================================
-// ⚠️ تنظیمات SUPABASE
+// تنظیمات اتصال (اطلاعات خود را اینجا بگذارید)
 // ==========================================
 const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-';
 // ==========================================
 
-const { createClient } = supabase;
-const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// چک کردن وجود کتابخانه Supabase
+if (typeof supabase === 'undefined') {
+    alert("کتابخانه Supabase لود نشد! لطفا اینترنت خود را چک کنید یا از VPN استفاده کنید.");
+}
 
-let currentUser = null;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// المان‌ها
-const loginContainer = document.getElementById("login-container");
-const chatContainer = document.getElementById("chat-container");
-const userInput = document.getElementById("username-input");
-const passInput = document.getElementById("password-input");
-const loginBtn = document.getElementById("login-btn");
-const loginError = document.getElementById("login-error");
-const messagesArea = document.getElementById("messages-area");
-const msgInput = document.getElementById("msg-input");
+// عناصر
+const loginScreen = document.getElementById('login-screen');
+const chatScreen = document.getElementById('chat-screen');
+const userIn = document.getElementById('username');
+const passIn = document.getElementById('password');
+const loginBtn = document.getElementById('login-btn');
+const errorMsg = document.getElementById('login-error');
+const msgList = document.getElementById('message-list');
+const msgInput = document.getElementById('message-input');
+const sendBtn = document.getElementById('send-btn');
+const currentUserSpan = document.getElementById('current-user');
 
-// -------------------------------------------------
-// ۱. سیستم لاگین (چک کردن پسورد از دیتابیس)
-// -------------------------------------------------
-async function login() {
-    const u = userInput.value.trim().toLowerCase();
-    const p = passInput.value.trim();
+let myUsername = null;
 
-    if (!u || !p) {
-        showError("لطفاً نام کاربری و رمز عبور را وارد کنید");
+// --- تابع لاگین ---
+async function handleLogin() {
+    const username = userIn.value.trim().toLowerCase(); // تبدیل به حروف کوچک
+    const password = passIn.value.trim();
+
+    if (!username || !password) {
+        errorMsg.textContent = "لطفا همه فیلدها را پر کنید.";
         return;
     }
 
-    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // لودینگ
-    
-    // چک کردن در جدول users
-    const { data, error } = await _supabase
-        .from('users')
-        .select('*')
-        .eq('username', u)
-        .eq('password', p)
-        .maybeSingle();
+    loginBtn.textContent = "در حال بررسی...";
+    loginBtn.disabled = true;
+    errorMsg.textContent = "";
 
-    if (error) {
-        showError("خطا در ارتباط با سرور");
-        console.error(error);
-    } else if (data) {
-        // موفقیت
-        currentUser = data.username;
-        document.getElementById("current-user-display").innerText = currentUser;
-        
-        loginContainer.style.display = "none";
-        chatContainer.style.display = "flex";
-        
-        initChat(); // شروع چت
-    } else {
-        showError("نام کاربری یا رمز عبور اشتباه است");
+    try {
+        // دریافت کاربر از دیتابیس
+        const { data, error } = await sb
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            // لاگین موفق
+            myUsername = data.username;
+            currentUserSpan.textContent = myUsername;
+            loginScreen.classList.add('hidden');
+            chatScreen.classList.remove('hidden');
+            startChat();
+        } else {
+            errorMsg.textContent = "نام کاربری یا رمز عبور اشتباه است.";
+            loginBtn.textContent = "ورود ➜";
+            loginBtn.disabled = false;
+        }
+
+    } catch (err) {
+        console.error(err);
+        errorMsg.textContent = "خطا در اتصال: " + err.message;
+        loginBtn.textContent = "ورود ➜";
+        loginBtn.disabled = false;
     }
+}
+
+loginBtn.addEventListener('click', handleLogin);
+
+
+// --- شروع چت ---
+function startChat() {
+    loadMessages();
     
-    loginBtn.innerHTML = 'ورود <i class="fas fa-arrow-left"></i>';
+    // دریافت پیام زنده
+    sb.channel('public:messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          console.log('تغییر جدید:', payload);
+          if (payload.eventType === 'INSERT') {
+              displayMessage(payload.new);
+          } else if (payload.eventType === 'DELETE') {
+              // اگر پیامی حذف شد، لیست را رفرش کن (ساده‌ترین راه)
+              const el = document.getElementById(`msg-${payload.old.id}`);
+              if (el) el.remove();
+          }
+      })
+      .subscribe();
 }
 
-function showError(msg) {
-    loginError.innerText = msg;
-    setTimeout(() => loginError.innerText = "", 3000);
-}
-
-// -------------------------------------------------
-// ۲. مدیریت چت (ارسال، دریافت، حذف)
-// -------------------------------------------------
-
-async function initChat() {
-    // لود تاریخچه پیام‌ها
-    const { data } = await _supabase
+// --- لود کردن پیام‌های قبلی ---
+async function loadMessages() {
+    const { data, error } = await sb
         .from('messages')
         .select('*')
-        .order('created_at', { ascending: true })
-        .limit(100);
+        .order('created_at', { ascending: true });
 
-    if (data) data.forEach(msg => renderMessage(msg));
-
-    // فعال‌سازی Realtime (دریافت پیام و حذف)
-    _supabase
-        .channel('public:messages')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-            if (payload.eventType === 'INSERT') {
-                renderMessage(payload.new);
-            } else if (payload.eventType === 'DELETE') {
-                removeMessageFromUI(payload.old.id);
-            }
-        })
-        .subscribe();
+    if (!error && data) {
+        msgList.innerHTML = '';
+        data.forEach(displayMessage);
+    }
 }
 
-async function sendMessage() {
+// --- نمایش یک پیام ---
+function displayMessage(msg) {
+    const li = document.createElement('li');
+    li.id = `msg-${msg.id}`;
+    
+    const isMe = msg.sender === myUsername;
+    li.className = isMe ? 'me' : 'other';
+
+    let deleteBtn = '';
+    if (isMe) {
+        deleteBtn = `<button class="delete-btn" onclick="deleteMsg(${msg.id})">×</button>`;
+    }
+
+    // فرمت ساعت
+    const time = new Date(msg.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit'});
+
+    li.innerHTML = `
+        <div class="msg-header">
+            <span>${msg.sender}</span>
+            <span>${time}</span>
+        </div>
+        ${deleteBtn}
+        <div>${msg.content}</div>
+    `;
+
+    msgList.appendChild(li);
+    msgList.scrollTop = msgList.scrollHeight;
+}
+
+// --- ارسال پیام ---
+sendBtn.addEventListener('click', async () => {
     const text = msgInput.value.trim();
     if (!text) return;
 
-    msgInput.value = "";
-    
-    await _supabase
+    // خالی کردن فیلد سریع برای حس بهتر
+    msgInput.value = '';
+
+    const { error } = await sb
         .from('messages')
-        .insert({ username: currentUser, text: text });
-}
+        .insert([{ sender: myUsername, content: text }]);
 
-async function deleteMessage(id) {
-    if(confirm("آیا از حذف این پیام مطمئن هستید؟")) {
-        const { error } = await _supabase
-            .from('messages')
-            .delete()
-            .eq('id', id);
-            
-        if(error) alert("خطا در حذف پیام");
+    if (error) {
+        alert("خطا در ارسال پیام!");
+        msgInput.value = text; // برگرداندن متن در صورت خطا
     }
-}
+});
 
-// -------------------------------------------------
-// ۳. توابع نمایشی (UI)
-// -------------------------------------------------
+// اینتر برای ارسال
+msgInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendBtn.click();
+});
 
-function renderMessage(msg) {
-    const isMe = msg.username === currentUser;
-    const div = document.createElement("div");
-    div.id = `msg-${msg.id}`; // شناسه برای حذف آسان
-    div.className = `message-bubble ${isMe ? 'message-right' : 'message-left'}`;
-
-    const date = new Date(msg.created_at);
-    const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
+// --- حذف پیام ---
+window.deleteMsg = async function(id) {
+    if(!confirm('حذف شود؟')) return;
     
-    // دکمه حذف فقط برای پیام‌های خود شخص
-    const deleteBtnHtml = isMe ? `<button class="delete-btn" onclick="deleteMessage(${msg.id})"><i class="fas fa-trash"></i></button>` : '';
-
-    div.innerHTML = `
-        <div class="msg-header">
-            <span>${msg.username}</span>
-            ${deleteBtnHtml}
-        </div>
-        <div>${escapeHtml(msg.text)}</div>
-        <span class="msg-time">${timeStr}</span>
-    `;
-
-    messagesArea.appendChild(div);
-    messagesArea.scrollTop = messagesArea.scrollHeight;
+    await sb.from('messages').delete().eq('id', id);
+    // حذف از صفحه به صورت خودکار توسط ریل‌تایم انجام میشود
 }
 
-function removeMessageFromUI(id) {
-    const el = document.getElementById(`msg-${id}`);
-    if (el) {
-        el.style.opacity = '0';
-        setTimeout(() => el.remove(), 300); // انیمیشن حذف
-    }
-}
-
-function escapeHtml(text) {
-    if (!text) return text;
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-// -------------------------------------------------
-// رویدادها
-// -------------------------------------------------
-loginBtn.addEventListener("click", login);
-document.getElementById("send-btn").addEventListener("click", sendMessage);
-document.getElementById("logout-btn").addEventListener("click", () => location.reload());
-
-msgInput.addEventListener("keypress", (e) => { if(e.key === "Enter") sendMessage(); });
-passInput.addEventListener("keypress", (e) => { if(e.key === "Enter") login(); });
+// --- خروج ---
+document.getElementById('logout-btn').addEventListener('click', () => {
+    location.reload();
+});
