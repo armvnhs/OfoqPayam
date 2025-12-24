@@ -1,135 +1,168 @@
 // ==========================================
-// ⚠️ تنظیمات SUPABASE - این بخش را پر کنید ⚠️
+// ⚠️ تنظیمات SUPABASE
 // ==========================================
-const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co'; 
-const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-'; 
+const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-'; // اگر کار نکرد، کلید anon (شروع با eyJ) را بگذارید
 // ==========================================
 
-// راه اندازی کلاینت Supabase
 const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let username = "";
+let currentUser = null;
 
-// المان‌های صفحه
-const loginScreen = document.getElementById("login-screen");
-const mainInterface = document.getElementById("main-interface");
-const usernameInput = document.getElementById("username-input");
+// المان‌ها
+const loginContainer = document.getElementById("login-container");
+const chatContainer = document.getElementById("chat-container");
+const userInput = document.getElementById("username-input");
+const passInput = document.getElementById("password-input");
+const loginBtn = document.getElementById("login-btn");
+const loginError = document.getElementById("login-error");
+const messagesArea = document.getElementById("messages-area");
 const msgInput = document.getElementById("msg-input");
-const chatHistory = document.getElementById("chat-history");
 
 // -------------------------------------------------
-// توابع مربوط به ورود (Login)
+// ۱. سیستم لاگین (چک کردن پسورد از دیتابیس)
 // -------------------------------------------------
-function enterChat() {
-    const val = usernameInput.value.trim();
-    if (val !== "") {
-        username = val.toUpperCase(); // تبدیل به حروف بزرگ برای حالت هکری
-        
-        // تغییر وضعیت نمایش
-        loginScreen.style.display = "none";
-        mainInterface.style.display = "flex";
-        
-        // آپدیت کردن پرامپت
-        document.getElementById("prompt-label").innerText = `${username}@OFOQ:~#`;
-        
-        msgInput.focus();
-        
-        // شروع دریافت پیام‌ها
-        initSupabaseListeners();
-    } else {
-        alert("ERROR: IDENTITY REQUIRED");
+async function login() {
+    const u = userInput.value.trim().toLowerCase();
+    const p = passInput.value.trim();
+
+    if (!u || !p) {
+        showError("لطفاً نام کاربری و رمز عبور را وارد کنید");
+        return;
     }
+
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // لودینگ
+    
+    // چک کردن در جدول users
+    const { data, error } = await _supabase
+        .from('users')
+        .select('*')
+        .eq('username', u)
+        .eq('password', p)
+        .maybeSingle();
+
+    if (error) {
+        showError("خطا در ارتباط با سرور");
+        console.error(error);
+    } else if (data) {
+        // موفقیت
+        currentUser = data.username;
+        document.getElementById("current-user-display").innerText = currentUser;
+        
+        loginContainer.style.display = "none";
+        chatContainer.style.display = "flex";
+        
+        initChat(); // شروع چت
+    } else {
+        showError("نام کاربری یا رمز عبور اشتباه است");
+    }
+    
+    loginBtn.innerHTML = 'ورود <i class="fas fa-arrow-left"></i>';
+}
+
+function showError(msg) {
+    loginError.innerText = msg;
+    setTimeout(() => loginError.innerText = "", 3000);
 }
 
 // -------------------------------------------------
-// توابع مربوط به Supabase (ارسال و دریافت)
+// ۲. مدیریت چت (ارسال، دریافت، حذف)
 // -------------------------------------------------
 
-async function initSupabaseListeners() {
-    // ۱. دریافت پیام‌های قبلی (لود تاریخچه)
-    const { data, error } = await _supabase
+async function initChat() {
+    // لود تاریخچه پیام‌ها
+    const { data } = await _supabase
         .from('messages')
         .select('*')
-        .order('created_at', { ascending: true }) // پیام‌های قدیمی اول بیایند
-        .limit(50);
+        .order('created_at', { ascending: true })
+        .limit(100);
 
-    if (error) console.error("Error loading history:", error);
-    if (data) {
-        data.forEach(msg => renderMessage(msg));
-    }
+    if (data) data.forEach(msg => renderMessage(msg));
 
-    // ۲. گوش دادن به پیام‌های جدید (Realtime)
+    // فعال‌سازی Realtime (دریافت پیام و حذف)
     _supabase
         .channel('public:messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-            renderMessage(payload.new);
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+                renderMessage(payload.new);
+            } else if (payload.eventType === 'DELETE') {
+                removeMessageFromUI(payload.old.id);
+            }
         })
         .subscribe();
 }
 
 async function sendMessage() {
-    const text = msgInput.value;
+    const text = msgInput.value.trim();
+    if (!text) return;
 
-    if (text.trim() !== "") {
-        // خالی کردن فیلد ورودی بلافاصله برای حس سرعت
-        msgInput.value = ""; 
+    msgInput.value = "";
+    
+    await _supabase
+        .from('messages')
+        .insert({ username: currentUser, text: text });
+}
 
-        // ارسال به دیتابیس
+async function deleteMessage(id) {
+    if(confirm("آیا از حذف این پیام مطمئن هستید؟")) {
         const { error } = await _supabase
             .from('messages')
-            .insert({ username: username, text: text });
-        
-        if (error) {
-            console.error("Transmission failed:", error);
-            alert("ERROR: TRANSMISSION FAILED");
-        }
+            .delete()
+            .eq('id', id);
+            
+        if(error) alert("خطا در حذف پیام");
     }
 }
 
 // -------------------------------------------------
-// توابع نمایش (UI)
+// ۳. توابع نمایشی (UI)
 // -------------------------------------------------
-function renderMessage(data) {
-    // تبدیل زمان به فرمت قابل خواندن
-    const date = new Date(data.created_at);
-    const timeStr = `[${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}]`;
 
+function renderMessage(msg) {
+    const isMe = msg.username === currentUser;
     const div = document.createElement("div");
-    div.className = "msg-line";
+    div.id = `msg-${msg.id}`; // شناسه برای حذف آسان
+    div.className = `message-bubble ${isMe ? 'message-right' : 'message-left'}`;
+
+    const date = new Date(msg.created_at);
+    const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
     
-    // ساختار HTML پیام
-    div.innerHTML = `<span class="timestamp">${timeStr}</span> <span class="user-label">${data.username}:</span> ${escapeHtml(data.text)}`;
-    
-    chatHistory.appendChild(div);
-    
-    // اسکرول خودکار به پایین
-    chatHistory.scrollTop = chatHistory.scrollHeight;
+    // دکمه حذف فقط برای پیام‌های خود شخص
+    const deleteBtnHtml = isMe ? `<button class="delete-btn" onclick="deleteMessage(${msg.id})"><i class="fas fa-trash"></i></button>` : '';
+
+    div.innerHTML = `
+        <div class="msg-header">
+            <span>${msg.username}</span>
+            ${deleteBtnHtml}
+        </div>
+        <div>${escapeHtml(msg.text)}</div>
+        <span class="msg-time">${timeStr}</span>
+    `;
+
+    messagesArea.appendChild(div);
+    messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
-// جلوگیری از حملات XSS (امنیت)
+function removeMessageFromUI(id) {
+    const el = document.getElementById(`msg-${id}`);
+    if (el) {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300); // انیمیشن حذف
+    }
+}
+
 function escapeHtml(text) {
     if (!text) return text;
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 // -------------------------------------------------
-// رویدادهای دکمه‌ها و کیبورد
+// رویدادها
 // -------------------------------------------------
-document.getElementById("login-btn").addEventListener("click", enterChat);
+loginBtn.addEventListener("click", login);
 document.getElementById("send-btn").addEventListener("click", sendMessage);
+document.getElementById("logout-btn").addEventListener("click", () => location.reload());
 
-// زدن اینتر در فیلد ورود
-usernameInput.addEventListener("keypress", (e) => { 
-    if(e.key === "Enter") enterChat(); 
-});
-
-// زدن اینتر در فیلد پیام
-msgInput.addEventListener("keypress", (e) => { 
-    if(e.key === "Enter") sendMessage(); 
-});
+msgInput.addEventListener("keypress", (e) => { if(e.key === "Enter") sendMessage(); });
+passInput.addEventListener("keypress", (e) => { if(e.key === "Enter") login(); });
