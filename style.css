@@ -1,157 +1,322 @@
+:root {
+    --bg-color: #050505;
+    --grid-color: rgba(0, 243, 255, 0.1);
+    --primary-neon: #00f3ff; /* رنگ آبی نئونی */
+    --secondary-neon: #bc13fe; /* رنگ بنفش نئونی */
+    --text-color: #e0e0e0;
+    --glass-bg: rgba(20, 20, 20, 0.8);
+    --msg-me-bg: rgba(0, 243, 255, 0.15); /* رنگ پیام من */
+    --msg-other-bg: rgba(40, 40, 40, 0.8); /* رنگ پیام دیگران */
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Vazirmatn', sans-serif;
+    font-family: 'Vazirmatn', 'Courier New', monospace;
 }
 
 body {
-    background-color: #121212;
-    color: #ffffff;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     height: 100vh;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.container {
+/* افکت پس‌زمینه گرید و اسکن‌لاین */
+.grid-bg {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: 
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 30px 30px;
+    z-index: -2;
+    perspective: 500px;
+}
+
+.scanline {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* مدیریت صفحات */
+.screen {
+    display: none;
     width: 100%;
     height: 100%;
-    max-width: 600px;
+    max-width: 600px; /* محدودیت عرض برای دسکتاپ */
+    background: var(--glass-bg);
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+}
+
+/* اگر دسکتاپ بود، کادر حاشیه داشته باشد */
+@media (min-width: 601px) {
+    .screen {
+        height: 90vh;
+        border: 1px solid #333;
+        border-radius: 15px;
+    }
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* ---- استایل لاگین ---- */
+.login-box {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #1e1e1e;
-    position: relative;
-}
-
-.hidden { display: none !important; }
-
-/* استایل لاگین */
-#login-screen {
     justify-content: center;
-    align-items: center;
-    background-color: #0d0d0d;
-}
-
-.login-box {
-    background: #1e1e1e;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 90%;
+    padding: 40px;
     text-align: center;
-    border: 1px solid #333;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 
-.login-box h2 { margin-bottom: 10px; }
-.login-box p { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
-
-input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 10px;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 6px;
+.neon-text {
+    font-size: 3.5rem;
     color: #fff;
-    text-align: center;
+    text-shadow: 
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px var(--primary-neon),
+        0 0 40px var(--primary-neon),
+        0 0 80px var(--primary-neon);
+    margin-bottom: 5px;
+    font-weight: 900;
+    letter-spacing: 2px;
 }
 
-input:focus { outline: none; border-color: #7259f3; }
+.subtitle {
+    color: var(--primary-neon);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 40px;
+    display: block;
+}
 
-button {
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-group i {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary-neon);
+}
+
+.input-group input {
     width: 100%;
-    padding: 12px;
-    background: #7259f3;
-    color: white;
+    padding: 15px 50px 15px 15px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    border-color: var(--primary-neon);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+.cyber-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(45deg, var(--secondary-neon), #8a00c2);
     border: none;
-    border-radius: 6px;
+    color: #fff;
+    font-size: 1.1rem;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
-    transition: 0.2s;
+    transition: 0.3s;
+    margin-top: 10px;
 }
 
-button:hover { background: #5b42d6; }
-.error-msg { color: #ff4d4d; font-size: 0.9rem; margin-top: 10px; min-height: 20px;}
+.cyber-btn:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 20px rgba(188, 19, 254, 0.4);
+}
 
-/* استایل چت */
-header {
-    background: #252525;
-    padding: 15px;
+/* ---- استایل چت ---- */
+.chat-header {
+    padding: 15px 20px;
+    background: rgba(0,0,0,0.6);
+    border-bottom: 1px solid #333;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #333;
+    backdrop-filter: blur(10px);
 }
 
-#logout-btn { width: auto; padding: 5px 15px; background: #c62828; font-size: 0.8rem; }
+.mini-logo {
+    color: var(--primary-neon);
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    text-shadow: 0 0 5px var(--primary-neon);
+}
 
-#message-list {
+.status-indicator {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+.blink-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #0f0;
+    border-radius: 50%;
+    box-shadow: 0 0 5px #0f0;
+    margin-left: 5px;
+    animation: blink 2s infinite;
+}
+
+@keyframes blink { 50% { opacity: 0.4; } }
+
+#messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
-    list-style: none;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
 }
 
-#message-list li {
-    max-width: 80%;
-    padding: 10px 15px;
-    border-radius: 10px;
-    font-size: 0.95rem;
+/* استایل پیام‌ها */
+.message {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 12px;
     position: relative;
+    font-size: 0.95rem;
+    line-height: 1.5;
     word-wrap: break-word;
+    animation: fadeIn 0.3s ease;
 }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 .msg-header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     margin-bottom: 5px;
     opacity: 0.7;
+    font-family: 'Courier New', monospace;
 }
 
-/* پیام‌های من */
-li.me {
-    align-self: flex-end;
-    background: #7259f3;
-    color: white;
-    border-bottom-left-radius: 2px;
+/* پیام خودم (سمت راست) */
+.message.me {
+    align-self: flex-start; /* در RTL، شروع یعنی راست */
+    background: var(--msg-me-bg);
+    border: 1px solid var(--primary-neon);
+    border-top-right-radius: 2px;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
 }
+.message.me .msg-sender { color: var(--primary-neon); }
 
-/* پیام‌های دیگران */
-li.other {
-    align-self: flex-start;
-    background: #333;
-    color: #eee;
-    border-bottom-right-radius: 2px;
+/* پیام دیگران (سمت چپ) */
+.message.other {
+    align-self: flex-end; /* در RTL، پایان یعنی چپ */
+    background: var(--msg-other-bg);
+    border: 1px solid #444;
+    border-top-left-radius: 2px;
 }
+.message.other .msg-sender { color: #ff0055; }
 
+/* دکمه حذف مخفی */
 .delete-btn {
     position: absolute;
-    top: -5px;
-    left: -5px;
-    width: 20px;
-    height: 20px;
-    background: red;
-    color: white;
-    border-radius: 50%;
-    font-size: 12px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    bottom: -20px; /* زیر پیام */
+    left: 0;
+    background: none;
+    border: none;
+    color: #ff4444;
     cursor: pointer;
-    padding: 0;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: 0.2s;
+    padding: 5px;
 }
 
-.input-area {
+/* نمایش دکمه حذف هنگام هاور */
+.message:hover .delete-btn {
+    opacity: 1;
+    bottom: 5px;
+    left: 5px;
+}
+/* فاصله متن برای اینکه روی دکمه نیاید */
+.message.me { padding-bottom: 20px; } 
+
+.chat-input-area {
     padding: 15px;
-    background: #252525;
-    display: flex;
-    gap: 10px;
+    background: rgba(0,0,0,0.8);
     border-top: 1px solid #333;
 }
 
-#send-btn { width: 80px; }
+#message-form {
+    display: flex;
+    gap: 10px;
+}
+
+#message-input {
+    flex: 1;
+    padding: 12px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 25px;
+    color: #fff;
+    outline: none;
+    padding-right: 20px;
+}
+
+#message-input:focus {
+    border-color: var(--secondary-neon);
+}
+
+.send-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    background: var(--secondary-neon);
+    color: #fff;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.send-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px var(--secondary-neon);
+}
+
+.error-msg { color: #ff4444; font-size: 0.8rem; margin-top: 10px; }
+.loading-spinner { text-align: center; margin-top: 20px; color: var(--primary-neon); }
+.icon-btn { background: none; border: none; color: #ff4444; cursor: pointer; font-size: 1.2rem; }
+
+/* اسکرول بار زیبا */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-neon); }
