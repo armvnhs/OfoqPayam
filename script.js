@@ -2,7 +2,7 @@
 // ⚠️ تنظیمات SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-'; // اگر کار نکرد، کلید anon (شروع با eyJ) را بگذارید
+const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-';
 // ==========================================
 
 const { createClient } = supabase;
