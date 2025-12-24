@@ -1,29 +1,41 @@
-// تنظیمات اتصال Supabase
 const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwenpmc3l6cWt2dXlwc2VjY3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0OTA3NjYsImV4cCI6MjA4MjA2Njc2Nn0.dkN5v2HRmhGNHzWchc-ZFiCGfxAMKw4X1bsFcwukc7I'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwenpmc3l6cWt2dXlwc2VjY3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0OTA3NjYsImV4cCI6MjA4MjA2Njc2Nn0.dkN5v2HRmhGNHzWchc-ZFiCGfxAMKw4X1bsFcwukc7I';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// المان‌ها
+const loginPage = document.getElementById('loginPage');
+const chatPage = document.getElementById('chatPage');
+const loginForm = document.getElementById('loginForm');
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+const messagesList = document.getElementById('messagesList');
+const themeColorInput = document.getElementById('themeColorInput');
+const loginStatus = document.getElementById('loginStatus');
 
-// متغیرهای وضعیت
 let currentUser = null;
 
-// المنت‌های HTML
-const loginScreen = document.getElementById('login-screen');
-const chatScreen = document.getElementById('chat-screen');
-const loginForm = document.getElementById('login-form');
-const loginError = document.getElementById('login-error');
-const msgContainer = document.getElementById('messages-container');
-const msgForm = document.getElementById('message-form');
-const msgInput = document.getElementById('message-input');
-const logoutBtn = document.getElementById('logout-btn');
+// ۱. مدیریت رنگ تم (ذخیره در حافظه)
+const savedColor = localStorage.getItem('themeColor');
+if (savedColor) {
+    document.documentElement.style.setProperty('--accent-color', savedColor);
+    themeColorInput.value = savedColor;
+}
 
-// --- ۱. مدیریت لاگین ---
+themeColorInput.addEventListener('input', (e) => {
+    const color = e.target.value;
+    document.documentElement.style.setProperty('--accent-color', color);
+    localStorage.setItem('themeColor', color);
+});
+
+// ۲. لاگین (رفع مشکل پریدن صفحه)
 loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    loginError.textContent = 'در حال بررسی هویت...';
-    
-    const username = document.getElementById('username').value.toLowerCase().trim();
-    const password = document.getElementById('password').value;
+    e.preventDefault(); // ⛔ جلوگیری از رفرش شدن صفحه
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    loginStatus.innerText = "⏳ در حال اتصال...";
+    loginStatus.style.color = "yellow";
 
     try {
         const { data, error } = await supabase
@@ -34,144 +46,134 @@ loginForm.addEventListener('submit', async (e) => {
             .single();
 
         if (error || !data) {
-            throw new Error('نام کاربری یا رمز عبور اشتباه است.');
+            throw new Error("نام کاربری یا رمز عبور اشتباه است (یا اینترنت قطع است)");
         }
 
         currentUser = data;
-        switchToChat();
+        loginStatus.innerText = "✅ ورود موفق!";
+        loginStatus.style.color = "lightgreen";
+        
+        // انتقال به صفحه چت
+        setTimeout(() => {
+            loginPage.classList.add('hidden');
+            chatPage.classList.remove('hidden');
+            document.getElementById('displayUsername').innerText = currentUser.username;
+            loadMessages();
+            setupRealtime();
+        }, 1000);
+
     } catch (err) {
         console.error(err);
-        if(err.message.includes('fetch')) {
-            loginError.textContent = 'خطا در اتصال: لطفاً VPN را چک کنید.';
-        } else {
-            loginError.textContent = err.message;
-        }
+        loginStatus.innerText = "❌ خطا: " + err.message;
+        loginStatus.style.color = "#ed4245";
     }
 });
 
-function switchToChat() {
-    loginScreen.classList.remove('active');
-    chatScreen.classList.add('active');
-    document.getElementById('current-user-display').textContent = currentUser.username;
-    loadMessages();
-    setupRealtime();
-}
-
-// --- ۲. مدیریت پیام‌ها ---
-async function loadMessages() {
-    msgContainer.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> در حال رمزگشایی پیام‌ها...</div>';
-    
-    const { data, error } = await supabase
-        .from('messages')
-        .select('*, users(username)')
-        .order('created_at', { ascending: true });
-
-    msgContainer.innerHTML = ''; // پاک کردن لودینگ
-    
-    if (error) {
-        msgContainer.innerHTML = '<p style="text-align:center; color:red">خطا در دریافت پیام‌ها</p>';
-        return;
-    }
-
-    data.forEach(msg => renderMessage(msg));
-    scrollToBottom();
-}
-
-function renderMessage(msg) {
-    // تعیین اینکه پیام مال خودمان است یا دیگران
-    const isMe = msg.user_id === currentUser.id;
-    const div = document.createElement('div');
-    
-    // کلاس me برای راست‌چین (آبی)، other برای چپ‌چین (تیره)
-    div.className = `message ${isMe ? 'me' : 'other'}`;
-    div.id = `msg-${msg.id}`;
-
-    // زمان پیام
-    const time = new Date(msg.created_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-    const senderName = isMe ? 'خودم' : (msg.users?.username || 'ناشناس');
-
-    // ساخت محتوای پیام
-    let htmlContent = `
-        <div class="msg-header">
-            <span class="msg-sender">${senderName}</span>
-            <span class="msg-time">${time}</span>
-        </div>
-        <div class="msg-body">${escapeHtml(msg.content)}</div>
-    `;
-
-    // اگر پیام برای خودم بود، دکمه حذف اضافه کن
-    if (isMe) {
-        htmlContent += `<button onclick="deleteMessage(${msg.id})" class="delete-btn" title="حذف پیام"><i class="fa-solid fa-trash"></i></button>`;
-    }
-
-    div.innerHTML = htmlContent;
-    msgContainer.appendChild(div);
-}
-
-// --- ۳. ارسال پیام ---
-msgForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+// ۳. ارسال پیام
+async function sendMessage() {
     const text = msgInput.value.trim();
     if (!text) return;
 
-    // پاک کردن موقت اینپوت برای حس سرعت
+    // پاک کردن ورودی سریع برای حس بهتر
     msgInput.value = '';
 
     const { error } = await supabase
         .from('messages')
-        .insert([{ user_id: currentUser.id, content: text }]);
+        .insert([{ 
+            content: text, 
+            sender: currentUser.username,
+            is_admin: currentUser.username === 'admin'
+        }]);
 
-    if (error) alert('خطا در ارسال: ' + error.message);
+    if (error) alert("خطا در ارسال: " + error.message);
+}
+
+sendBtn.addEventListener('click', sendMessage);
+msgInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
 });
 
-// --- ۴. حذف پیام ---
+// ۴. دریافت پیام‌ها
+async function loadMessages() {
+    const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    messagesList.innerHTML = '';
+    data.forEach(msg => appendMessage(msg));
+    scrollToBottom();
+}
+
+// ۵. نمایش پیام در صفحه (استایل دیسکورد)
+function appendMessage(msg) {
+    const isMe = msg.sender === currentUser.username;
+    const div = document.createElement('div');
+    div.className = `message ${isMe ? 'my-message' : ''}`;
+    div.id = `msg-${msg.id}`;
+
+    // دکمه حذف فقط برای خود شخص
+    let deleteBtnHtml = '';
+    if (isMe) {
+        deleteBtnHtml = `<button class="delete-btn" onclick="deleteMessage('${msg.id}')">حذف</button>`;
+    }
+
+    // تولید رنگ اواتار رندوم بر اساس نام
+    const avatarColor = msg.sender === 'admin' ? '#ed4245' : 'var(--accent-color)';
+
+    div.innerHTML = `
+        <div class="msg-avatar" style="background-color: ${avatarColor}"></div>
+        <div class="msg-content-wrapper">
+            <div class="msg-header">
+                <span class="msg-sender">${msg.sender}</span>
+                <span class="msg-time">${new Date(msg.created_at).toLocaleTimeString('fa-IR')}</span>
+                ${deleteBtnHtml}
+            </div>
+            <div class="msg-text">${msg.content}</div>
+        </div>
+    `;
+
+    messagesList.appendChild(div);
+    scrollToBottom();
+}
+
+// ۶. حذف پیام
 window.deleteMessage = async (id) => {
-    if (!confirm('آیا این پیام حذف شود؟')) return;
-
-    // حذف بصری سریع
-    const el = document.getElementById(`msg-${id}`);
-    if(el) el.style.opacity = '0.5';
-
+    if(!confirm("مطمئنی میخوای پاکش کنی؟")) return;
+    
     const { error } = await supabase
         .from('messages')
         .delete()
-        .eq('id', id)
-        .eq('user_id', currentUser.id); // امنیت: فقط پیام خود کاربر
+        .eq('id', id);
 
-    if (error) {
-        alert('خطا در حذف');
-        if(el) el.style.opacity = '1';
-    }
+    if (error) alert("خطا در حذف: " + error.message);
+    else document.getElementById(`msg-${id}`).remove();
 };
 
-// --- ۵. ریل‌تایم (آپدیت آنی) ---
+// ۷. ریل‌تایم (دریافت آنی)
 function setupRealtime() {
     supabase
         .channel('public:messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-            // دریافت نام کاربری فرستنده جدید
-            const { data } = await supabase.from('users').select('username').eq('id', payload.new.user_id).single();
-            const msg = { ...payload.new, users: data };
-            renderMessage(msg);
-            scrollToBottom();
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+            appendMessage(payload.new);
         })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
             const el = document.getElementById(`msg-${payload.old.id}`);
             if (el) el.remove();
         })
         .subscribe();
 }
 
-// ابزارها
 function scrollToBottom() {
-    msgContainer.scrollTop = msgContainer.scrollHeight;
+    messagesList.scrollTop = messagesList.scrollHeight;
 }
 
-function escapeHtml(text) {
-    if (!text) return text;
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-logoutBtn.addEventListener('click', () => {
+// خروج
+document.getElementById('logoutBtn').addEventListener('click', () => {
     location.reload();
 });
