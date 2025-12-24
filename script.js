@@ -1,6 +1,6 @@
 // تنظیمات اتصال Supabase
 const SUPABASE_URL = 'https://kpzzfsyzqkvuypseccri.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_SO025VlsajUKd5lhl7CBwg_9nvrHvm-'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwenpmc3l6cWt2dXlwc2VjY3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0OTA3NjYsImV4cCI6MjA4MjA2Njc2Nn0.dkN5v2HRmhGNHzWchc-ZFiCGfxAMKw4X1bsFcwukc7I'; 
 
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
