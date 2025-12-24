@@ -3,45 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GGP | Group Chat</title>
-    <!-- فونت وزیر برای ظاهر مدرن فارسی -->
+    <title>پیام‌رسان گروهی</title>
+    <!-- فونت وزیر -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="style.css">
+    <!-- کتابخانه Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- آیکون -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- کانتینر لاگین -->
-    <div id="login-container" class="fade-in">
+    <!-- صفحه ورود -->
+    <div id="login-screen" class="container">
         <div class="login-box">
             <h2>ورود به گروه</h2>
             <p>لطفاً نام کاربری و رمز عبور خود را وارد کنید</p>
-            <input type="text" id="username-input" placeholder="نام کاربری" autocomplete="off">
-            <input type="password" id="password-input" placeholder="رمز عبور">
-            <button id="login-btn">ورود <i class="fas fa-arrow-left"></i></button>
+            <input type="text" id="username" placeholder="نام کاربری (مثلاً admin)" autocomplete="off">
+            <input type="password" id="password" placeholder="رمز عبور">
+            <button id="login-btn">ورود ➜</button>
             <p id="login-error" class="error-msg"></p>
         </div>
     </div>
 
-    <!-- کانتینر اصلی چت -->
-    <div id="chat-container" style="display: none;">
+    <!-- صفحه چت (مخفی در ابتدا) -->
+    <div id="chat-screen" class="container hidden">
         <header>
-            <div class="header-info">
-                <h3>گروه خصوصی</h3>
-                <span class="status-dot"></span> <span id="current-user-display">آنلاین</span>
+            <div class="user-info">
+                <span>کاربر: <b id="current-user">...</b></span>
             </div>
-            <button id="logout-btn"><i class="fas fa-sign-out-alt"></i></button>
+            <button id="logout-btn">خروج</button>
         </header>
-
-        <div id="messages-area">
-            <!-- پیام‌ها اینجا قرار می‌گیرند -->
-        </div>
+        
+        <ul id="message-list">
+            <!-- پیام‌ها اینجا می‌آیند -->
+        </ul>
 
         <div class="input-area">
-            <input type="text" id="msg-input" placeholder="پیام خود را بنویسید..." autocomplete="off">
-            <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+            <input type="text" id="message-input" placeholder="پیام خود را بنویسید...">
+            <button id="send-btn">ارسال</button>
         </div>
     </div>
 
