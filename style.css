@@ -1,206 +1,157 @@
-:root {
-    --bg-color: #121212;
-    --chat-bg: #1e1e1e;
-    --primary: #6c5ce7; /* بنفش مدرن */
-    --primary-hover: #5649c0;
-    --text-color: #e0e0e0;
-    --secondary-text: #a0a0a0;
-    --my-msg-bg: #6c5ce7;
-    --other-msg-bg: #2d2d2d;
-    --input-bg: #2d2d2d;
-    --border-color: #333;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Vazirmatn', sans-serif;
 }
 
 body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Vazirmatn', sans-serif;
-    margin: 0;
-    padding: 0;
+    background-color: #121212;
+    color: #ffffff;
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
 }
 
-/* استایل صفحه لاگین */
-#login-container {
+.container {
     width: 100%;
     height: 100%;
+    max-width: 600px;
     display: flex;
+    flex-direction: column;
+    background-color: #1e1e1e;
+    position: relative;
+}
+
+.hidden { display: none !important; }
+
+/* استایل لاگین */
+#login-screen {
     justify-content: center;
     align-items: center;
-    background: radial-gradient(circle at center, #1e1e1e 0%, #000 100%);
+    background-color: #0d0d0d;
 }
 
 .login-box {
-    background: var(--chat-bg);
+    background: #1e1e1e;
     padding: 2rem;
-    border-radius: 16px;
+    border-radius: 12px;
     width: 90%;
-    max-width: 350px;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    border: 1px solid var(--border-color);
+    border: 1px solid #333;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 
-.login-box h2 { margin-top: 0; font-weight: 500; }
-.login-box p { color: var(--secondary-text); font-size: 0.9rem; margin-bottom: 1.5rem; }
+.login-box h2 { margin-bottom: 10px; }
+.login-box p { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
 
-.login-box input {
+input {
     width: 100%;
     padding: 12px;
     margin-bottom: 10px;
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: white;
-    box-sizing: border-box;
-    font-family: inherit;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #fff;
     text-align: center;
 }
 
-.login-box button {
+input:focus { outline: none; border-color: #7259f3; }
+
+button {
     width: 100%;
     padding: 12px;
-    background: var(--primary);
+    background: #7259f3;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    font-family: inherit;
-    font-size: 1rem;
+    font-weight: bold;
     transition: 0.2s;
 }
 
-.login-box button:hover { background: var(--primary-hover); }
-.error-msg { color: #ff4757; font-size: 0.8rem; margin-top: 10px; min-height: 20px;}
+button:hover { background: #5b42d6; }
+.error-msg { color: #ff4d4d; font-size: 0.9rem; margin-top: 10px; min-height: 20px;}
 
-/* استایل صفحه چت */
-#chat-container {
-    width: 100%;
-    height: 100%;
-    max-width: 600px; /* حالت موبایل و دسکتاپ جمع و جور */
-    background: var(--chat-bg);
-    display: flex; /* باید فلکس باشد چون قبلاً display:none بود */
-    flex-direction: column;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
-
+/* استایل چت */
 header {
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--border-color);
+    background: #252525;
+    padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(30, 30, 30, 0.95);
+    border-bottom: 1px solid #333;
 }
 
-.header-info h3 { margin: 0; font-size: 1.1rem; }
-.status-dot { height: 8px; width: 8px; background-color: #2ecc71; border-radius: 50%; display: inline-block; margin-left: 5px; }
+#logout-btn { width: auto; padding: 5px 15px; background: #c62828; font-size: 0.8rem; }
 
-#logout-btn {
-    background: transparent;
-    border: none;
-    color: var(--secondary-text);
-    cursor: pointer;
-    font-size: 1.2rem;
-}
-
-#messages-area {
+#message-list {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 15px;
+    list-style: none;
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-/* استایل حباب‌های پیام */
-.message-bubble {
-    max-width: 75%;
+#message-list li {
+    max-width: 80%;
     padding: 10px 15px;
-    border-radius: 12px;
-    position: relative;
+    border-radius: 10px;
     font-size: 0.95rem;
-    line-height: 1.5;
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    word-wrap: break-word;
 }
 
-@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-/* پیام‌های دیگران */
-.message-left {
-    align-self: flex-end; /* چون RTL هستیم، چپ می‌شود راست در واقع شروع محور */
-    background-color: var(--other-msg-bg);
-    border-bottom-right-radius: 2px;
+.msg-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    margin-bottom: 5px;
+    opacity: 0.7;
 }
 
 /* پیام‌های من */
-.message-right {
-    align-self: flex-start; /* در RTL، شروع محور یعنی سمت راست */
-    background-color: var(--my-msg-bg);
+li.me {
+    align-self: flex-end;
+    background: #7259f3;
     color: white;
     border-bottom-left-radius: 2px;
 }
 
-.msg-header {
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.6);
-    margin-bottom: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* پیام‌های دیگران */
+li.other {
+    align-self: flex-start;
+    background: #333;
+    color: #eee;
+    border-bottom-right-radius: 2px;
 }
 
 .delete-btn {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.5);
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 20px;
+    height: 20px;
+    background: red;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
-    font-size: 0.8rem;
-    margin-right: 8px;
     padding: 0;
 }
-.delete-btn:hover { color: #ff4757; }
 
-.msg-time { font-size: 0.7rem; color: rgba(255,255,255,0.4); text-align: left; display: block; margin-top: 5px;}
-
-/* ورودی پیام */
 .input-area {
     padding: 15px;
-    border-top: 1px solid var(--border-color);
+    background: #252525;
     display: flex;
     gap: 10px;
-    background: var(--chat-bg);
+    border-top: 1px solid #333;
 }
 
-.input-area input {
-    flex: 1;
-    padding: 12px;
-    border-radius: 25px;
-    border: 1px solid var(--border-color);
-    background: var(--input-bg);
-    color: white;
-    font-family: inherit;
-    outline: none;
-}
-
-.input-area input:focus { border-color: var(--primary); }
-
-.input-area button {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.2s;
-}
-
-.input-area button:hover { transform: scale(1.1); }
+#send-btn { width: 80px; }
